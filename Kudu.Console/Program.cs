@@ -21,9 +21,11 @@ using Kudu.Core.SourceControl;
 using Kudu.Core.SourceControl.Git;
 using Kudu.Core.Tracing;
 using System.Reflection;
+using Kudu.Core.LinuxConsumption;
 using XmlSettings;
 using log4net;
 using log4net.Config;
+using Environment = Kudu.Core.Environment;
 
 namespace Kudu.Console
 {
@@ -148,6 +150,7 @@ namespace Kudu.Console
             IAnalytics analytics = new Analytics(settingsManager, serverConfiguration, traceFactory);
 
             IWebHooksManager hooksManager = new WebHooksManager(tracer, env, hooksLock);
+
             IDeploymentStatusManager deploymentStatusManager = new DeploymentStatusManager(env, analytics, statusLock);
             IDeploymentManager deploymentManager = new DeploymentManager(builderFactory,
                                                           env,
@@ -157,7 +160,9 @@ namespace Kudu.Console
                                                           deploymentStatusManager,
                                                           deploymentLock,
                                                           GetLogger(env, level, logger),
-                                                          hooksManager);
+                                                          hooksManager,
+                                                          new NullDeploymentPersistenceManager(),
+                                                          serverConfiguration);
 
             var step = tracer.Step(XmlTracer.ExecutingExternalProcessTrace, new Dictionary<string, string>
             {

@@ -17,6 +17,7 @@ using Kudu.Core.Commands;
 using Kudu.Core.Deployment;
 using Kudu.Core.Helpers;
 using Kudu.Core.Infrastructure;
+using Kudu.Core.LinuxConsumption;
 using Kudu.Core.Scan;
 using Kudu.Core.Settings;
 using Kudu.Core.SourceControl;
@@ -35,6 +36,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Routing.Constraints;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -122,12 +124,15 @@ namespace Kudu.Services.Web
             services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor());
             services.AddSingleton<ILinuxConsumptionEnvironment, LinuxConsumptionEnvironment>();
             services.AddSingleton<ILinuxConsumptionInstanceManager, LinuxConsumptionInstanceManager>();
+            services.AddSingleton<IDeploymentLogsStorageClient, DeploymentLogsStorageClient>();
 
             KuduWebUtil.EnsureHomeEnvironmentVariable();
 
             KuduWebUtil.EnsureSiteBitnessEnvironmentVariable();
 
             IEnvironment environment = KuduWebUtil.GetEnvironment(_hostingEnvironment);
+            
+
 
             _webAppRuntimeEnvironment = environment;
 
@@ -147,6 +152,19 @@ namespace Kudu.Services.Web
 
             // General
             services.AddSingleton<IServerConfiguration>(ServerConfiguration);
+
+            services.AddSingleton<IDeploymentPersistenceManager>(s =>
+            {
+                if (environment.IsOnLinuxConsumption)
+                {
+                    var logsStorageClient = s.GetService<IDeploymentLogsStorageClient>();
+                    return new DeploymentPersistenceManager(environment, logsStorageClient);
+                }
+                else
+                {
+                    return new NullDeploymentPersistenceManager();
+                }
+            });
 
             // CORE TODO Looks like this doesn't ever actually do anything, can refactor out?
             services.AddSingleton<IBuildPropertyProvider>(new BuildPropertyProvider());

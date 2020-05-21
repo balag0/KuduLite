@@ -401,6 +401,14 @@ namespace Kudu.Core
             }
         }
 
+        public string AzureWebJobsStorage
+        {
+            get
+            {
+                return System.Environment.GetEnvironmentVariable(Constants.AzureWebJobsStorage);
+            }
+        }
+
         public string KuduConsoleFullPath { get; }
 
         public static bool IsAzureEnvironment()

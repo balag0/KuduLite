@@ -13,6 +13,7 @@ using Kudu.Contracts.Tracing;
 using Kudu.Core.Helpers;
 using Kudu.Core.Hooks;
 using Kudu.Core.Infrastructure;
+using Kudu.Core.LinuxConsumption;
 using Kudu.Core.Settings;
 using Kudu.Core.SourceControl;
 using Kudu.Core.Tracing;
@@ -34,9 +35,11 @@ namespace Kudu.Core.Deployment
         private readonly IDeploymentSettingsManager _settings;
         private readonly IDeploymentStatusManager _status;
         private readonly IWebHooksManager _hooksManager;
+        private readonly IDeploymentPersistenceManager _deploymentPersistenceManager;
+        private readonly IServerConfiguration _serverConfiguration;
 
         private const string RestartTriggerReason = "App deployment";
-        private const string XmlLogFile = "log.xml";
+        public const string XmlLogFile = "log.xml";
         public const string TextLogFile = "log.log";
         private const string TemporaryDeploymentIdPrefix = "temp-";
         private const int MaxSuccessDeploymentResults = 10;
@@ -49,9 +52,12 @@ namespace Kudu.Core.Deployment
                                  IDeploymentStatusManager status,
                                  IDictionary<string, IOperationLock> namedLocks,
                                  ILogger globalLogger,
-                                 IWebHooksManager hooksManager)
-            : this(builderFactory, environment, traceFactory, analytics, settings, status, namedLocks["deployment"], globalLogger, hooksManager)
-        { }
+                                 IWebHooksManager hooksManager,
+                                 IDeploymentPersistenceManager deploymentPersistenceManager,
+                                 IServerConfiguration serverConfiguration)
+            : this(builderFactory, environment, traceFactory, analytics, settings, status, namedLocks["deployment"], globalLogger, hooksManager, deploymentPersistenceManager, serverConfiguration)
+        {
+        }
 
         public DeploymentManager(ISiteBuilderFactory builderFactory,
                                  IEnvironment environment,
@@ -61,7 +67,9 @@ namespace Kudu.Core.Deployment
                                  IDeploymentStatusManager status,
                                  IOperationLock deploymentLock,
                                  ILogger globalLogger,
-                                 IWebHooksManager hooksManager)
+                                 IWebHooksManager hooksManager,
+                                 IDeploymentPersistenceManager deploymentPersistenceManager,
+                                 IServerConfiguration serverConfiguration)
         {
             _builderFactory = builderFactory;
             _environment = environment;
@@ -72,6 +80,8 @@ namespace Kudu.Core.Deployment
             _settings = settings;
             _status = status;
             _hooksManager = hooksManager;
+            _deploymentPersistenceManager = deploymentPersistenceManager;
+            _serverConfiguration = serverConfiguration;
         }
 
         private bool IsDeploying
@@ -227,7 +237,7 @@ namespace Kudu.Core.Deployment
 
                         if (_settings.ShouldUpdateSubmodules())
                         {
-                            using (tracer.Step("Updating submodules"))
+                            using (tracer.Step("Updating submodules-1"))
                             {
                                 innerLogger = logger.Log(Resources.Log_UpdatingSubmodules);
 
@@ -289,7 +299,22 @@ namespace Kudu.Core.Deployment
                         tracer.TraceError(exception);
                         throw new DeploymentFailedException(exception);
                     }
-           
+
+                    var ignored = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            using (tracer.Step("Persisting deployment logs.."))
+                            {
+                                await _deploymentPersistenceManager.Persist(id);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            KuduEventGenerator.Log().KuduException(_serverConfiguration.ApplicationName,
+                                nameof(DeployAsync), string.Empty, string.Empty, "Failed to persist deployment logs", e.ToString());
+                        }
+                    });
             }
         }
 

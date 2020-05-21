@@ -82,6 +82,11 @@ namespace Kudu.Core.Deployment
             }, "Getting deployment status", DeploymentStatusManager.LockTimeout);
         }
 
+        public static string DeploymentStatusFileName()
+        {
+            return StatusFile;
+        }
+
         private void Initialize(XDocument document)
         {
             DeployStatus status;
@@ -149,6 +154,7 @@ namespace Kudu.Core.Deployment
         public bool IsTemporary { get; set; }
         public bool IsReadOnly { get; set; }
         public string SiteName { get; private set; }
+
         public string HostName { get; private set; }
 
         public void Save()

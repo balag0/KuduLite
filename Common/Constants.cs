@@ -124,6 +124,7 @@ namespace Kudu
         public const string WebSiteSwapSlotName = "WEBSITE_SWAP_SLOTNAME";
         public const string AzureWebsiteInstanceId = "WEBSITE_INSTANCE_ID";
         public const string ContainerName = "CONTAINER_NAME";
+        public const string AzureWebJobsStorage = "AzureWebJobsStorage";
 
         public const string Function = "function";
         public const string Functions = "functions";

@@ -66,5 +66,6 @@ namespace Kudu.Tests
         public string KuduConsoleFullPath => _KuduConsoleFullPath;
         public string SitePackagesPath => _SitePackagesPath;
         public bool IsOnLinuxConsumption => _IsOnLinuxConsumption;
+        public string AzureWebJobsStorage => string.Empty;
     }
 }

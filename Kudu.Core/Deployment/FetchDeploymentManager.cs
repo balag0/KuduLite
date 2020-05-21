@@ -11,6 +11,7 @@ using Kudu.Core.Deployment.Generator;
 using Kudu.Core.Helpers;
 using Kudu.Core.Hooks;
 using Kudu.Core.Infrastructure;
+using Kudu.Core.LinuxConsumption;
 using Kudu.Core.SourceControl;
 using Kudu.Core.Tracing;
 
@@ -24,6 +25,8 @@ namespace Kudu.Core.Deployment
         private readonly IOperationLock _deploymentLock;
         private readonly IDeploymentManager _deploymentManager;
         private readonly IDeploymentStatusManager _status;
+        private readonly IDeploymentPersistenceManager _deploymentPersistenceManager;
+        private readonly IServerConfiguration _serverConfiguration;
         private readonly string _markerFilePath;
 
         public FetchDeploymentManager(
@@ -33,8 +36,10 @@ namespace Kudu.Core.Deployment
             //IOperationLock deploymentLock,
             IDictionary<string, IOperationLock> namedLocks,
             IDeploymentManager deploymentManager,
-            IDeploymentStatusManager status)
-            : this(settings, environment, tracer, namedLocks["deployment"], deploymentManager, status)
+            IDeploymentStatusManager status,
+            IDeploymentPersistenceManager deploymentPersistenceManager,
+            IServerConfiguration serverConfiguration)
+            : this(settings, environment, tracer, namedLocks["deployment"], deploymentManager, status, deploymentPersistenceManager, serverConfiguration)
         { }
 
         public FetchDeploymentManager(
@@ -43,7 +48,9 @@ namespace Kudu.Core.Deployment
             ITracer tracer,
             IOperationLock deploymentLock,
             IDeploymentManager deploymentManager,
-            IDeploymentStatusManager status)
+            IDeploymentStatusManager status,
+            IDeploymentPersistenceManager deploymentPersistenceManager,
+            IServerConfiguration serverConfiguration)
         {
             _settings = settings;
             _environment = environment;
@@ -51,6 +58,8 @@ namespace Kudu.Core.Deployment
             _deploymentLock = deploymentLock;
             _deploymentManager = deploymentManager;
             _status = status;
+            _deploymentPersistenceManager = deploymentPersistenceManager;
+            _serverConfiguration = serverConfiguration;
 
             _markerFilePath = Path.Combine(environment.DeploymentsPath, "pending");
 
@@ -287,7 +296,7 @@ namespace Kudu.Core.Deployment
         }
 
         // key goal is to create background tracer that is independent of request.
-        public static async Task<bool> PerformBackgroundDeployment(
+        public async Task<bool> PerformBackgroundDeployment(
             DeploymentInfoBase deployInfo,
             IEnvironment environment,
             IDeploymentSettingsManager settings,
@@ -330,8 +339,8 @@ namespace Kudu.Core.Deployment
                     var deploymentStatusManager = new DeploymentStatusManager(environment, analytics, statusLock);
                     var siteBuilderFactory = new SiteBuilderFactory(new BuildPropertyProvider(), environment);
                     var webHooksManager = new WebHooksManager(tracer, environment, hooksLock);
-                    var deploymentManager = new DeploymentManager(siteBuilderFactory, environment, traceFactory, analytics, settings, deploymentStatusManager, deploymentLock, NullLogger.Instance, webHooksManager);
-                    var fetchDeploymentManager = new FetchDeploymentManager(settings, environment, tracer, deploymentLock, deploymentManager, deploymentStatusManager);
+                    var deploymentManager = new DeploymentManager(siteBuilderFactory, environment, traceFactory, analytics, settings, deploymentStatusManager, deploymentLock, NullLogger.Instance, webHooksManager, _deploymentPersistenceManager, _serverConfiguration);
+                    var fetchDeploymentManager = new FetchDeploymentManager(settings, environment, tracer, deploymentLock, deploymentManager, deploymentStatusManager, _deploymentPersistenceManager, _serverConfiguration);
 
                     IDisposable tempDeployment = null;
 

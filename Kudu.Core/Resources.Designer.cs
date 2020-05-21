@@ -385,7 +385,7 @@ namespace Kudu.Core {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Updating submodules..
+        ///   Looks up a localized string similar to Updating submodules-2..
         /// </summary>
         internal static string Log_UpdatingSubmodules {
             get {
