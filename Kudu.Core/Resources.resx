@@ -226,7 +226,7 @@
     <value>Updating branch '{0}'.</value>
   </data>
   <data name="Log_UpdatingSubmodules" xml:space="preserve">
-    <value>Updating submodules.</value>
+    <value>Updating submodules-2.</value>
   </data>
   <data name="ReceivingChanges" xml:space="preserve">
     <value>Receiving changes.</value>

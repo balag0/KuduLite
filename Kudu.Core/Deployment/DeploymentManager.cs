@@ -227,7 +227,7 @@ namespace Kudu.Core.Deployment
 
                         if (_settings.ShouldUpdateSubmodules())
                         {
-                            using (tracer.Step("Updating submodules"))
+                            using (tracer.Step("Updating submodules-1"))
                             {
                                 innerLogger = logger.Log(Resources.Log_UpdatingSubmodules);
 

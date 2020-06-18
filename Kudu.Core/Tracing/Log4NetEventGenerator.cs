@@ -143,6 +143,11 @@ namespace Kudu.Core.Tracing
             LogKuduTraceEvent(kuduEvent);
         }
 
+        public void LogMessage(EventLevel logLevel, string siteName, string message, string exception)
+        {
+            throw new NotImplementedException(nameof(LogMessage));
+        }
+
 
         public void LogKuduTraceEvent(KuduEvent kuduEvent)
         {

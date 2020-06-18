@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Reflection;
 using AspNetCore.RouteAnalyzer;
@@ -130,6 +131,21 @@ namespace Kudu.Services.Web
             IEnvironment environment = KuduWebUtil.GetEnvironment(_hostingEnvironment);
 
             _webAppRuntimeEnvironment = environment;
+
+            if (_webAppRuntimeEnvironment.IsOnLinuxConsumption)
+            {
+                services.AddSingleton(_ => new HttpClient());
+                services.AddSingleton<IMeshServiceClient>(s =>
+                {
+                    var httpClient = s.GetService<HttpClient>();
+                    return new MeshServiceClient(SystemEnvironment.Instance, httpClient);
+                });
+                services.AddSingleton<IMeshPersistentFileSystem>(s =>
+                {
+                    var meshServiceClient = s.GetService<IMeshServiceClient>();
+                    return new MeshPersistentFileSystem(SystemEnvironment.Instance, meshServiceClient);
+                });
+            }
 
             KuduWebUtil.EnsureDotNetCoreEnvironmentVariable(environment);
 
@@ -480,6 +496,10 @@ namespace Kudu.Services.Web
                 routes.MapRoute("admin-instance-assign", "admin/instance/assign",
                     new {controller = "LinuxConsumptionInstanceAdmin", action = "AssignAsync" },
                     new {verb = new HttpMethodRouteConstraint("POST")});
+
+                routes.MapRoute("admin-list-files", "admin/instance/list",
+                    new { controller = "LinuxConsumptionInstanceAdmin", action = "List" },
+                    new { verb = new HttpMethodRouteConstraint("GET") });
 
                 // Live Command Line
                 routes.MapHttpRouteDual("execute-command", "command",

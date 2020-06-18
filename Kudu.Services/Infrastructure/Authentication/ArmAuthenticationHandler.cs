@@ -34,6 +34,7 @@ namespace Kudu.Services.Infrastructure.Authentication
 
         private AuthenticateResult HandleAuthenticate()
         {
+            // return success;
             string token = null;
             if (!Context.Request.Headers.TryGetValue(ArmTokenHeaderName, out StringValues values))
             {
@@ -62,6 +63,17 @@ namespace Kudu.Services.Infrastructure.Authentication
                 _logger.LogError(exc, "ARM authentication token validation failed.");
                 return AuthenticateResult.Fail(exc);
             }
+        }
+
+        private AuthenticateResult Success()
+        {
+            var claims = new List<Claim>
+            {
+                new Claim(SecurityConstants.AuthLevelClaimType, AuthorizationLevel.Admin.ToString())
+            };
+
+            var identity = new ClaimsIdentity(claims, ArmAuthenticationDefaults.AuthenticationScheme);
+            return AuthenticateResult.Success(new AuthenticationTicket(new ClaimsPrincipal(identity), Scheme.Name));
         }
     }
 }

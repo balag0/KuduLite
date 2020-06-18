@@ -142,6 +142,19 @@ namespace Kudu.Core.Tracing
             LogKuduTraceEvent(kuduEvent);
         }
 
+        public void LogMessage(EventLevel logLevel, string siteName, string message, string exception)
+        {
+            var kuduEvent = new KuduEvent
+            {
+                level = (int)logLevel,
+                siteName = siteName,
+                Message = message,
+                exception = exception
+            };
+
+            LogKuduTraceEvent(kuduEvent);
+        }
+
         public void LogKuduTraceEvent(KuduEvent kuduEvent)
         {
             _writeEvent($"{Constants.LinuxLogEventStreamName} {kuduEvent.ToString()},{Environment.StampName},{Environment.TenantId},{Environment.ContainerName}");

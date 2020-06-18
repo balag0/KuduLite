@@ -1,3 +1,4 @@
+using System;
 using Kudu.Services.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
@@ -6,6 +7,8 @@ using Microsoft.AspNetCore.Http;
 using Kudu.Contracts.Settings;
 using Kudu.Core.Helpers;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using Kudu.Services.Infrastructure.Authorization;
 
 namespace Kudu.Services.LinuxConsumptionInstanceAdmin
@@ -19,6 +22,7 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         private const string _appsettingPrefix = "APPSETTING_";
         private readonly ILinuxConsumptionInstanceManager _instanceManager;
         private readonly IDeploymentSettingsManager _settingsManager;
+        private readonly IMeshPersistentFileSystem _meshPersistentFileSystem;
 
         /// <summary>
         /// This class handles appsetting assignment and provide information when running in a Service Fabric Mesh container,
@@ -26,10 +30,23 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         /// </summary>
         /// <param name="instanceManager">Allow KuduLite to interact with Service Fabric Mesh instance in Linux Consumption</param>
         /// <param name="settingsManager">Allow instance assignment to change application setting</param>
-        public LinuxConsumptionInstanceAdminController(ILinuxConsumptionInstanceManager instanceManager, IDeploymentSettingsManager settingsManager)
+        public LinuxConsumptionInstanceAdminController(ILinuxConsumptionInstanceManager instanceManager, IDeploymentSettingsManager settingsManager, IMeshPersistentFileSystem meshPersistentFileSystem)
         {
             _instanceManager = instanceManager;
             _settingsManager = settingsManager;
+            _meshPersistentFileSystem = meshPersistentFileSystem;
+        }
+
+        private string GetFileContents()
+        {
+            try
+            {
+                return string.Join(",", System.IO.File.ReadAllLines("/root/abcd"));
+            }
+            catch (Exception e)
+            {
+                return e.ToString();
+            }
         }
 
         /// <summary>
@@ -37,10 +54,23 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         /// </summary>
         /// <returns>Expect 200 when current service is up and running</returns>
         [HttpGet]
-        [Authorize(Policy = AuthPolicyNames.AdminAuthLevel)]
         public IActionResult Info()
         {
-            return Ok(_instanceManager.GetInstanceInfo());
+            var instanceHealth = new InstanceHealth {Items = new List<InstanceHealthItem>()};
+
+            var logs = new InstanceHealthItem();
+            logs.Name = "Logs";
+            logs.Success = true;
+            logs.Message = GetFileContents();
+            instanceHealth.Items.Add(logs);
+
+            var fileShareMount = new InstanceHealthItem();
+            fileShareMount.Name = "Persistent storage";
+            fileShareMount.Success = _meshPersistentFileSystem.GetStatus(out var persistenceMessage);
+            fileShareMount.Message = persistenceMessage;
+            instanceHealth.Items.Add(fileShareMount);
+
+            return Ok(instanceHealth);
         }
 
         /// <summary>
@@ -95,5 +125,31 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
                ? Accepted()
                : StatusCode(StatusCodes.Status409Conflict, "Instance already assigned");
         }
+
+        /// <summary>
+        /// Lister
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<string> List()
+        {
+            try
+            {
+                var stringBuilder = new StringBuilder();
+                int count = 0;
+                foreach (var s in Directory.EnumerateFileSystemEntries(Constants.KuduFileShareMountPath))
+                {
+                    count++;
+                    stringBuilder.Append(s);
+                }
+
+                return $"{count} - {stringBuilder}";
+            }
+            catch (Exception e)
+            {
+                return e.ToString();
+            }
+        }
+
     }
 }

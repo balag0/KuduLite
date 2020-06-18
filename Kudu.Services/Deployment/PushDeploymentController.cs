@@ -377,7 +377,14 @@ namespace Kudu.Services.Deployment
 
                     CreateZipSymlinks(deploymentInfo.repositorySymlinks, extractTargetDirectory);
 
-                    PermissionHelper.ChmodRecursive("777", extractTargetDirectory, tracer, TimeSpan.FromMinutes(1));
+                    try
+                    {
+                        PermissionHelper.ChmodRecursive("777", extractTargetDirectory, tracer, TimeSpan.FromMinutes(1));
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
                 }
             }
 

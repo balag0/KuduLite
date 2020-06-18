@@ -3,9 +3,11 @@ using Kudu.Services.Models;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using System.Net.Http;
 using System.Threading.Tasks;
 using Kudu.Core.Infrastructure;
+using Kudu.Core.Tracing;
 
 namespace Kudu.Services.LinuxConsumptionInstanceAdmin
 {
@@ -18,16 +20,16 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         private static HostAssignmentContext _assignmentContext;
 
         private readonly ILinuxConsumptionEnvironment _linuxConsumptionEnv;
-        private readonly HttpClient _client;
+        private readonly IMeshPersistentFileSystem _meshPersistentFileSystem;
 
         /// <summary>
         /// Create a manager to specialize KuduLite when it is running in Service Fabric Mesh
         /// </summary>
         /// <param name="linuxConsumptionEnv">Environment variables</param>
-        public LinuxConsumptionInstanceManager(ILinuxConsumptionEnvironment linuxConsumptionEnv)
+        public LinuxConsumptionInstanceManager(ILinuxConsumptionEnvironment linuxConsumptionEnv, IMeshPersistentFileSystem meshPersistentFileSystem)
         {
             _linuxConsumptionEnv = linuxConsumptionEnv;
-            _client = new HttpClient();
+            _meshPersistentFileSystem = meshPersistentFileSystem;
         }
 
         public IDictionary<string, string> GetInstanceInfo()
@@ -78,39 +80,6 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
             }
         }
 
-        public async Task<string> ValidateContext(HostAssignmentContext assignmentContext)
-        {
-            string error = null;
-            HttpResponseMessage response = null;
-            try
-            {
-                var zipUrl = assignmentContext.ZipUrl;
-                if (!string.IsNullOrEmpty(zipUrl))
-                {
-                    // make sure the zip uri is valid and accessible
-                    await OperationManager.AttemptAsync(async () =>
-                    {
-                        try
-                        {
-                            var request = new HttpRequestMessage(HttpMethod.Head, zipUrl);
-                            response = await _client.SendAsync(request);
-                            response.EnsureSuccessStatusCode();
-                        }
-                        catch (Exception)
-                        {
-                            throw;
-                        }
-                    }, retries: 2, delayBeforeRetry: 300 /*ms*/);
-                }
-            }
-            catch (Exception)
-            {
-                error = $"Invalid zip url specified (StatusCode: {response?.StatusCode})";
-            }
-
-            return error;
-        }
-
         private async Task Assign(HostAssignmentContext assignmentContext)
         {
             try
@@ -118,6 +87,13 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
                 // first make all environment and file system changes required for
                 // the host to be specialized
                 assignmentContext.ApplyAppSettings();
+
+                // Limit the amount of time time we allow for mounting to complete
+
+                var mounted =
+                    await OperationManager.ExecuteWithTimeout(MountFileShare(), TimeSpan.FromSeconds(10));
+                KuduEventGenerator.Log().LogMessage(EventLevel.Informational, assignmentContext.SiteName,
+                    $"Mount Kudu file share result: {mounted}", string.Empty);
             }
             catch (Exception)
             {
@@ -131,6 +107,19 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
                 // leave placeholder mode
                 _linuxConsumptionEnv.FlagAsSpecializedAndReady();
                 _linuxConsumptionEnv.ResumeRequests();
+            }
+        }
+
+        private async Task MountFileShare()
+        {
+            try
+            {
+                await _meshPersistentFileSystem.MountFileShare();
+            }
+            catch (Exception e)
+            {
+                KuduEventGenerator.Log().LogMessage(EventLevel.Warning, ServerConfiguration.GetApplicationName(),
+                    nameof(MountFileShare), e.ToString());
             }
         }
     }
