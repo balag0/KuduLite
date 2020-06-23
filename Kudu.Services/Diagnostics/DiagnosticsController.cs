@@ -50,7 +50,7 @@ namespace Kudu.Services.Performance
             // 2. The profile dump
             // 3. The npm log
             _paths = new[] {
-                environment.DeploymentsPath,
+                environment.GetDeploymentsPath(),
                 Path.Combine(environment.RootPath, Constants.LogFilesPath),
                 Path.Combine(environment.WebRootPath, Constants.NpmDebugLogFile),
             };

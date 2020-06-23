@@ -13,6 +13,7 @@ using Kudu.Core.Helpers;
 using Kudu.Core.Infrastructure;
 using Kudu.Core.Settings;
 using Kudu.Core.Tracing;
+using Kudu.Services.Deployment;
 using Kudu.Services.Infrastructure;
 using Kudu.Services.Infrastructure.Authorization;
 using Kudu.Services.Infrastructure.Authentication;
@@ -299,6 +300,7 @@ namespace Kudu.Services.Web
         /// default configuration during the runtime.
         /// </summary>
         internal static IEnvironment GetEnvironment(IHostingEnvironment hostingEnvironment,
+            IDeploymentsPathProvider deploymentsPathProvider,
             IDeploymentSettingsManager settings = null,
             IHttpContextAccessor httpContextAccessor = null)
         {
@@ -311,7 +313,7 @@ namespace Kudu.Services.Web
             var kuduConsoleFullPath =
                 Path.Combine(AppContext.BaseDirectory, KuduConsoleRelativePath, KuduConsoleFilename);
             return new Environment(root, EnvironmentHelper.NormalizeBinPath(binPath), repositoryPath, requestId,
-                kuduConsoleFullPath, httpContextAccessor);
+                kuduConsoleFullPath, httpContextAccessor, deploymentsPathProvider);
         }
 
         /// <summary>
@@ -519,7 +521,7 @@ namespace Kudu.Services.Web
         /// </summary>
         internal static string GetSettingsPath(IEnvironment environment)
         {
-            return Path.Combine(environment.DeploymentsPath, Constants.DeploySettingsPath);
+            return Path.Combine(environment.GetDeploymentsPath(), Constants.DeploySettingsPath);
         }
 
         internal static IServiceCollection AddLinuxConsumptionAuthentication(this IServiceCollection services)

@@ -52,7 +52,7 @@ namespace Kudu.Core.Deployment
             _deploymentManager = deploymentManager;
             _status = status;
 
-            _markerFilePath = Path.Combine(environment.DeploymentsPath, "pending");
+            _markerFilePath = Path.Combine(environment.GetDeploymentsPath(), "pending");
 
             // Prefer marker creation in ctor to delay create when needed.
             // This is to keep the code simple and avoid creation synchronization.

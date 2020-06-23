@@ -4,6 +4,7 @@ using System.Xml.Linq;
 using Kudu.Contracts.Infrastructure;
 using Kudu.Core.Infrastructure;
 using Kudu.Core.Tracing;
+using Kudu.Services.Deployment;
 
 namespace Kudu.Core.Deployment
 {
@@ -19,8 +20,8 @@ namespace Kudu.Core.Deployment
 
         private DeploymentStatusFile(string id, IEnvironment environment, IOperationLock statusLock, XDocument document = null)
         {
-            _activeFile = Path.Combine(environment.DeploymentsPath, Constants.ActiveDeploymentFile);
-            _statusFile = Path.Combine(environment.DeploymentsPath, id, StatusFile);
+            _activeFile = Path.Combine(environment.GetDeploymentsPath(), Constants.ActiveDeploymentFile);
+            _statusFile = Path.Combine(environment.GetDeploymentsPath(), id, StatusFile);
             _statusLock = statusLock;
 
             Id = id;
@@ -36,7 +37,7 @@ namespace Kudu.Core.Deployment
 
         public static DeploymentStatusFile Create(string id, IEnvironment environment, IOperationLock statusLock)
         {
-            string path = Path.Combine(environment.DeploymentsPath, id);
+            string path = Path.Combine(environment.GetDeploymentsPath(), id);
 
             FileSystemHelpers.EnsureDirectory(path);
 
@@ -52,7 +53,7 @@ namespace Kudu.Core.Deployment
         {
             return statusLock.LockOperation(() =>
             {
-                string path = Path.Combine(environment.DeploymentsPath, id, StatusFile);
+                string path = Path.Combine(environment.GetDeploymentsPath(), id, StatusFile);
 
                 if (!FileSystemHelpers.FileExists(path))
                 {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics.Tracing;
+using System.IO;
 using System.Threading.Tasks;
 using Kudu.Core.Infrastructure;
 using Kudu.Core.Tracing;
@@ -117,6 +118,16 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         {
             message = _fileShareMountMessage;
             return _fileShareMounted;
+        }
+
+        public string GetDeploymentsPath()
+        {
+            if (_fileShareMounted)
+            {
+                return Path.Combine(Constants.KuduFileShareMountPath, "deployments");
+            }
+
+            return string.Empty;
         }
 
         private async Task<string> MountKuduFileShare(string siteName, string connectionString)

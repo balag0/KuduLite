@@ -11,12 +11,14 @@ using Microsoft.Win32;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Kudu.Core.Settings;
+using Kudu.Services.Deployment;
 
 namespace Kudu.Core
 {
     public class Environment : IEnvironment
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IDeploymentsPathProvider _deploymentsPathProvider;
 
         private readonly string _webRootPath;
         private readonly string _deploymentsPath;
@@ -106,7 +108,8 @@ namespace Kudu.Core
                 string repositoryPath,
                 string requestId,
                 string kuduConsoleFullPath,
-                IHttpContextAccessor httpContextAccessor)
+                IHttpContextAccessor httpContextAccessor,
+                IDeploymentsPathProvider deploymentsPathProvider)
         {
             RootPath = rootPath;
 
@@ -162,6 +165,7 @@ namespace Kudu.Core
             RequestId = !string.IsNullOrEmpty(requestId) ? requestId : Guid.Empty.ToString();
 
             _httpContextAccessor = httpContextAccessor;
+            _deploymentsPathProvider = deploymentsPathProvider;
 
             KuduConsoleFullPath = kuduConsoleFullPath;
         }
@@ -187,12 +191,18 @@ namespace Kudu.Core
             }
         }
 
-        public string DeploymentsPath
+        private string DeploymentsPath
         {
             get
             {
                 return FileSystemHelpers.EnsureDirectory(_deploymentsPath);
             }
+        }
+
+        public string GetDeploymentsPath()
+        {
+            return _deploymentsPathProvider.GetDeploymentsPath(this, DeploymentsPath);
+            // return DeploymentsPath;
         }
 
         public string DeploymentToolsPath

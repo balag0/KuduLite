@@ -23,6 +23,7 @@ using Kudu.Core.Settings;
 using Kudu.Core.SourceControl;
 using Kudu.Core.SSHKey;
 using Kudu.Core.Tracing;
+using Kudu.Services.Deployment;
 using Kudu.Services.Diagnostics;
 using Kudu.Services.GitServer;
 using Kudu.Services.Performance;
@@ -123,12 +124,15 @@ namespace Kudu.Services.Web
             services.AddSingleton<IHttpContextAccessor>(new HttpContextAccessor());
             services.AddSingleton<ILinuxConsumptionEnvironment, LinuxConsumptionEnvironment>();
             services.AddSingleton<ILinuxConsumptionInstanceManager, LinuxConsumptionInstanceManager>();
+            services.AddSingleton<IDeploymentsPathProvider, DeploymentsPathProvider>();
 
             KuduWebUtil.EnsureHomeEnvironmentVariable();
 
             KuduWebUtil.EnsureSiteBitnessEnvironmentVariable();
 
-            IEnvironment environment = KuduWebUtil.GetEnvironment(_hostingEnvironment);
+            var deploymentsPathProvider = new DeploymentsPathProvider(new MeshPersistentFileSystem(SystemEnvironment.Instance,
+                new MeshServiceClient(SystemEnvironment.Instance, new HttpClient())));
+            IEnvironment environment = KuduWebUtil.GetEnvironment(_hostingEnvironment, deploymentsPathProvider);
 
             _webAppRuntimeEnvironment = environment;
 
@@ -173,7 +177,7 @@ namespace Kudu.Services.Web
 
             // Per request environment
             services.AddScoped(sp =>
-                KuduWebUtil.GetEnvironment(_hostingEnvironment, sp.GetRequiredService<IDeploymentSettingsManager>()));
+                KuduWebUtil.GetEnvironment(_hostingEnvironment, sp.GetRequiredService <IDeploymentsPathProvider>(), sp.GetRequiredService<IDeploymentSettingsManager>()));
 
             services.AddDeploymentServices(environment);
 

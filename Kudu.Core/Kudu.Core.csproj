@@ -58,6 +58,10 @@
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="LinuxConsumption\" />
+  </ItemGroup>
   <PropertyGroup>
     <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>

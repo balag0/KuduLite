@@ -9,6 +9,7 @@ using Kudu.Contracts.Infrastructure;
 using Kudu.Contracts.Tracing;
 using Kudu.Core.Infrastructure;
 using Kudu.Core.Tracing;
+using Kudu.Services.Deployment;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Serialization;
@@ -55,7 +56,7 @@ namespace Kudu.Core.Hooks
             _environment = environment;
             _hooksLock = hooksLock;
 
-            _hooksFilePath = Path.Combine(_environment.DeploymentsPath, HooksFileName);
+            _hooksFilePath = Path.Combine(environment.GetDeploymentsPath(), HooksFileName);
         }
 
         public IEnumerable<WebHook> WebHooks

@@ -28,7 +28,7 @@ namespace Kudu.Core.Deployment
             _environment = environment;
             _analytics = analytics;
             _statusLock = statusLock;
-            _activeFile = Path.Combine(environment.DeploymentsPath, Constants.ActiveDeploymentFile);
+            _activeFile = Path.Combine(environment.GetDeploymentsPath(), Constants.ActiveDeploymentFile);
         }
 
         public IDeploymentStatusFile Create(string id)
@@ -43,7 +43,7 @@ namespace Kudu.Core.Deployment
 
         public void Delete(string id)
         {
-            string path = Path.Combine(_environment.DeploymentsPath, id);
+            string path = Path.Combine(_environment.GetDeploymentsPath(), id);
 
             _statusLock.LockOperation(() =>
             {

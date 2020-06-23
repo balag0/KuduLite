@@ -251,7 +251,7 @@ namespace Kudu.Services.Deployment
         public IActionResult CreateDeployment(DeployResult deployResult, string details)
         {
             var id = deployResult.Id;
-            string path = Path.Combine(_environment.DeploymentsPath, id);
+            string path = Path.Combine(_environment.GetDeploymentsPath(), id);
             IDeploymentStatusFile statusFile = _status.Open(id);
             if (statusFile != null)
             {

@@ -135,7 +135,7 @@ namespace Kudu.Services.SourceControl
                     using (_tracer.Step("Deleting deployment cache"))
                     {
                         // Delete the deployment cache
-                        FileSystemHelpers.DeleteDirectorySafe(_environment.DeploymentsPath, ignoreErrors != 0);
+                        FileSystemHelpers.DeleteDirectorySafe(_environment.GetDeploymentsPath(), ignoreErrors != 0);
                     }
                 }, "Deleting repository", TimeSpan.Zero);
             }
@@ -166,7 +166,7 @@ namespace Kudu.Services.SourceControl
             string activeDeploymentId = _status.ActiveDeploymentId;
             if (!String.IsNullOrEmpty(activeDeploymentId))
             {
-                string activeDeploymentManifest = Path.Combine(_environment.DeploymentsPath, activeDeploymentId, Constants.ManifestFileName);
+                string activeDeploymentManifest = Path.Combine(_environment.GetDeploymentsPath(), activeDeploymentId, Constants.ManifestFileName);
                 if (FileSystemHelpers.FileExists(activeDeploymentManifest))
                 {
                     FileSystemHelpers.CopyFile(activeDeploymentManifest, firstDeploymentManifest, overwrite: true);

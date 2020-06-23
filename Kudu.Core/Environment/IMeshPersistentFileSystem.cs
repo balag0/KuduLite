@@ -7,5 +7,7 @@ namespace Kudu.Services.LinuxConsumptionInstanceAdmin
         Task MountFileShare();
 
         bool GetStatus(out string message);
+
+        string GetDeploymentsPath();
     }
 }
